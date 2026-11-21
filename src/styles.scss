@@ -1,0 +1,123 @@
+// Global styles. Order: tokens → Bootstrap (only the modules used) → app theme/layout/components.
+@import 'styles/tokens';
+
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/variables-dark';
+@import 'bootstrap/scss/maps';
+@import 'bootstrap/scss/mixins';
+@import 'bootstrap/scss/utilities';
+@import 'bootstrap/scss/root';
+@import 'bootstrap/scss/reboot';
+@import 'bootstrap/scss/type';
+@import 'bootstrap/scss/grid';
+@import 'bootstrap/scss/tables';
+@import 'bootstrap/scss/forms';
+@import 'bootstrap/scss/buttons';
+@import 'bootstrap/scss/dropdown';
+@import 'bootstrap/scss/card';
+@import 'bootstrap/scss/breadcrumb';
+@import 'bootstrap/scss/pagination';
+@import 'bootstrap/scss/badge';
+@import 'bootstrap/scss/alert';
+@import 'bootstrap/scss/list-group';
+@import 'bootstrap/scss/spinners';
+@import 'bootstrap/scss/close';
+@import 'bootstrap/scss/toasts';
+@import 'bootstrap/scss/progress';
+@import 'bootstrap/scss/placeholders';
+@import 'bootstrap/scss/helpers';
+@import 'bootstrap/scss/utilities/api';
+
+@import 'styles/theme';
+@import 'styles/layout';
+@import 'styles/components';
+
+// Visible, consistent keyboard focus everywhere.
+:focus-visible {
+  outline: 3px solid rgba($primary, 0.55);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -3rem;
+  z-index: 1100;
+  padding: 0.5rem 1rem;
+  background: var(--app-surface);
+  border: 2px solid $primary;
+  border-radius: $border-radius;
+
+  &:focus {
+    top: 0.5rem;
+  }
+}
+
+.font-monospace-digits {
+  font-variant-numeric: tabular-nums;
+}
+
+// ---------- Motion (CSS only: runs when an element is inserted, CSP-safe) ----------
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shrink-x {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.fade-in {
+  animation: fade-in 0.2s ease-out both;
+}
+
+.btn,
+.list-group-item {
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+}
+
+// Native <dialog> styled as a modal.
+dialog.app-dialog {
+  width: min(28rem, calc(100vw - 2rem));
+  padding: 0;
+  color: var(--bs-body-color);
+  background: var(--app-surface);
+  border: 1px solid var(--bs-border-color);
+  border-radius: $border-radius-xl;
+  box-shadow: $box-shadow-lg;
+
+  &[open] {
+    animation: fade-in 0.15s ease-out both;
+  }
+
+  &::backdrop {
+    background: rgba($gray-900, 0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reveal-timer {
+    display: none;
+  }
+}

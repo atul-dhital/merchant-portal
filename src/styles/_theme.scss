@@ -1,0 +1,26 @@
+// App-level custom properties (light theme only).
+:root {
+  --app-surface: #ffffff;
+  --app-hover: #{$gray-100};
+  --app-muted: #{$gray-500};
+  --app-input-border: #{$gray-300};
+  --app-track: #e0e7ff; // lighter step of the brand blue (meters, progress)
+  --app-chart: #{$primary};
+  --app-grid: #{$gray-200};
+  --app-primary-soft: #eef2ff;
+  --app-primary-ink: #1d3fd6;
+
+  // Soft status pills: [background, text] pairs (text >= 4.5:1 on its background).
+  --app-soft-secondary-bg: #{$gray-100};
+  --app-soft-secondary-fg: #{$gray-700};
+  --app-soft-info-bg: #f0f9ff;
+  --app-soft-info-fg: #026aa2;
+  --app-soft-primary-bg: #eef2ff;
+  --app-soft-primary-fg: #1d3fd6;
+  --app-soft-warning-bg: #fffaeb;
+  --app-soft-warning-fg: #b54708;
+  --app-soft-success-bg: #ecfdf3;
+  --app-soft-success-fg: #027a48;
+  --app-soft-danger-bg: #fef3f2;
+  --app-soft-danger-fg: #b42318;
+}
