@@ -1,0 +1,229 @@
+@if (error(); as err) {
+  <app-page-header heading="Application" [crumbs]="crumbs()" />
+  @if (err.notFound) {
+    <section class="card">
+      <div class="card-body text-center py-5">
+        <h2 class="h4">Application not found</h2>
+        <p class="text-body-secondary mb-0">It does not exist or you do not have access to it.</p>
+      </div>
+    </section>
+  } @else {
+    <app-error-alert [message]="err.message" (retry)="reload()" />
+  }
+} @else if (detail(); as app) {
+  <app-page-header
+    [heading]="app.tradingName || app.legalName || 'Untitled draft'"
+    [crumbs]="crumbs()"
+  >
+    <span class="font-monospace-digits text-body-secondary small">{{ app.reference }}</span>
+    <app-status-badge [status]="app.status" />
+    @if (loading()) {
+      <span class="spinner-border spinner-border-sm text-body-secondary" role="status">
+        <span class="visually-hidden">Refreshing…</span>
+      </span>
+    }
+    @if (actions().canEdit) {
+      <a class="btn btn-primary" [routerLink]="['/applications', app.id, 'edit']"
+        >Edit application</a
+      >
+    }
+  </app-page-header>
+
+  <div class="row g-3 fade-in">
+    <div class="col-lg-8 d-flex flex-column gap-3">
+      <!-- Summary -->
+      <section class="card" aria-labelledby="sec-overview">
+        <div class="card-body">
+          <h2 id="sec-overview" class="card-heading">Summary</h2>
+          <dl class="row small mb-0">
+            <dt class="col-sm-4">Created by</dt>
+            <dd class="col-sm-8">{{ app.createdByName }}</dd>
+            <dt class="col-sm-4">Assigned reviewer</dt>
+            <dd class="col-sm-8">{{ app.assignedReviewerName ?? 'Not assigned' }}</dd>
+            <dt class="col-sm-4">Created</dt>
+            <dd class="col-sm-8">{{ app.createdAt | date: 'medium' }}</dd>
+            <dt class="col-sm-4">Last updated</dt>
+            <dd class="col-sm-8 mb-0">{{ app.updatedAt | date: 'medium' }}</dd>
+          </dl>
+        </div>
+      </section>
+
+      <!-- Business -->
+      <section class="card" aria-labelledby="sec-business">
+        <div class="card-body">
+          <h2 id="sec-business" class="card-heading">Business</h2>
+          <dl class="row small mb-0">
+            <dt class="col-sm-4">Legal name</dt>
+            <dd class="col-sm-8">{{ app.data.business.legalName }}</dd>
+            <dt class="col-sm-4">Trading name</dt>
+            <dd class="col-sm-8">{{ app.data.business.tradingName || '—' }}</dd>
+            <dt class="col-sm-4">Type</dt>
+            <dd class="col-sm-8">{{ label(businessTypes, app.data.business.businessType) }}</dd>
+            <dt class="col-sm-4">Category</dt>
+            <dd class="col-sm-8">{{ label(categories, app.data.business.category) }}</dd>
+            <dt class="col-sm-4">Registration no.</dt>
+            <dd class="col-sm-8">{{ app.data.business.registrationNumber }}</dd>
+            <dt class="col-sm-4">Incorporated</dt>
+            <dd class="col-sm-8">{{ app.data.business.incorporationDate | date: 'mediumDate' }}</dd>
+            <dt class="col-sm-4">Website</dt>
+            <dd class="col-sm-8 mb-0 text-break">{{ app.data.business.website || '—' }}</dd>
+          </dl>
+        </div>
+      </section>
+
+      <!-- Contact -->
+      <section class="card" aria-labelledby="sec-contact">
+        <div class="card-body">
+          <h2 id="sec-contact" class="card-heading">Contact</h2>
+          <dl class="row small mb-0">
+            <dt class="col-sm-4">Name</dt>
+            <dd class="col-sm-8">{{ app.data.contact.contactName }}</dd>
+            <dt class="col-sm-4">Email</dt>
+            <dd class="col-sm-8 text-break">{{ app.data.contact.email }}</dd>
+            <dt class="col-sm-4">Phone</dt>
+            <dd class="col-sm-8">{{ app.data.contact.phone }}</dd>
+            <dt class="col-sm-4">Address</dt>
+            <dd class="col-sm-8 mb-0">
+              {{ app.data.contact.addressLine1 }}, {{ app.data.contact.city }}
+              {{ app.data.contact.postalCode }},
+              {{ label(countries, app.data.contact.country) }}
+            </dd>
+          </dl>
+        </div>
+      </section>
+
+      <!-- Owners -->
+      <section class="card" aria-labelledby="sec-owners">
+        <div class="card-body">
+          <h2 id="sec-owners" class="card-heading">Owners</h2>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <caption class="visually-hidden">
+                Beneficial owners
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Date of birth</th>
+                  <th scope="col">Ownership</th>
+                  <th scope="col">National ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (owner of app.data.owners; track $index; let i = $index) {
+                  <tr>
+                    <td>{{ owner.fullName }}</td>
+                    <td>{{ owner.dateOfBirth | date: 'mediumDate' }}</td>
+                    <td>{{ owner.ownershipPercent }}%</td>
+                    <td>
+                      <app-masked-value
+                        [applicationId]="app.id"
+                        [field]="ownerField(i)"
+                        [masked]="owner.nationalId"
+                        [label]="'National ID of ' + (owner.fullName || 'owner ' + (i + 1))"
+                        [canReveal]="actions().canReveal"
+                        (revealed)="reload()"
+                      />
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Banking -->
+      <section class="card" aria-labelledby="sec-banking">
+        <div class="card-body">
+          <h2 id="sec-banking" class="card-heading">Banking & processing</h2>
+          <dl class="row small mb-0">
+            <dt class="col-sm-4">Bank</dt>
+            <dd class="col-sm-8">{{ app.data.banking.bankName }}</dd>
+            <dt class="col-sm-4">Account holder</dt>
+            <dd class="col-sm-8">{{ app.data.banking.accountHolder }}</dd>
+            <dt class="col-sm-4">Account number</dt>
+            <dd class="col-sm-8">
+              <app-masked-value
+                [applicationId]="app.id"
+                [field]="accountField"
+                [masked]="app.data.banking.accountNumber"
+                label="Bank account number"
+                [canReveal]="actions().canReveal"
+                (revealed)="reload()"
+              />
+            </dd>
+            <dt class="col-sm-4">Bank code</dt>
+            <dd class="col-sm-8">{{ app.data.banking.routingCode }}</dd>
+            <dt class="col-sm-4">Monthly volume</dt>
+            <dd class="col-sm-8">{{ app.data.banking.expectedMonthlyVolume | number }}</dd>
+            <dt class="col-sm-4">Average ticket</dt>
+            <dd class="col-sm-8 mb-0">{{ app.data.banking.averageTicketSize | number }}</dd>
+          </dl>
+        </div>
+      </section>
+    </div>
+
+    <div class="col-lg-4 d-flex flex-column gap-3">
+      <!-- Review controls: rendered only for the assigned reviewer (never for SALES). -->
+      @if (actions().canDecide) {
+        <section id="review" class="card border-primary" aria-labelledby="sec-review">
+          <div class="card-body">
+            <h2 id="sec-review" class="card-heading">Review decision</h2>
+            <app-review-panel [applicationId]="app.id" (decided)="reload()" />
+          </div>
+        </section>
+      }
+
+      @if (actions().canAssign) {
+        <section id="assignment" class="card" aria-labelledby="sec-assignment">
+          <div class="card-body">
+            <h2 id="sec-assignment" class="card-heading">Reviewer assignment</h2>
+            <app-assignment-panel
+              [applicationId]="app.id"
+              [currentReviewerId]="app.assignedReviewerId"
+              (assigned)="reload()"
+            />
+          </div>
+        </section>
+      }
+
+      <section class="card" aria-labelledby="sec-history">
+        <div class="card-body">
+          <h2 id="sec-history" class="card-heading">Risk history</h2>
+          <app-risk-history [history]="app.history" />
+        </div>
+      </section>
+    </div>
+  </div>
+} @else {
+  <!-- Skeleton while the application loads -->
+  <div class="placeholder-glow mt-2" aria-hidden="true">
+    <span class="placeholder col-4 col-md-3 rounded fs-3 d-block mb-2"></span>
+    <span class="placeholder col-2 rounded d-block mb-3"></span>
+    <div class="row g-3">
+      <div class="col-lg-8 d-flex flex-column gap-3">
+        @for (c of [1, 2, 3]; track c) {
+          <div class="card">
+            <div class="card-body">
+              <span class="placeholder col-3 rounded d-block mb-3"></span>
+              <span class="placeholder col-8 rounded d-block mb-2"></span>
+              <span class="placeholder col-6 rounded d-block mb-2"></span>
+              <span class="placeholder col-7 rounded d-block"></span>
+            </div>
+          </div>
+        }
+      </div>
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-body">
+            <span class="placeholder col-5 rounded d-block mb-3"></span>
+            <span class="placeholder col-10 rounded d-block mb-2"></span>
+            <span class="placeholder col-8 rounded d-block"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="visually-hidden" role="status">Loading application…</p>
+}
