@@ -1,0 +1,150 @@
+<app-page-header
+  [heading]="draft() ? 'Edit application' : 'New merchant application'"
+  [subtitle]="autosave.reference() ?? undefined"
+  [crumbs]="crumbs"
+>
+  <!-- Auto-save status, announced politely to screen readers -->
+  <div class="small d-flex align-items-center gap-2" aria-live="polite">
+    @let save = autosave.state();
+    @switch (save.status) {
+      @case ('saving') {
+        <span class="spinner-border spinner-border-sm text-secondary" aria-hidden="true"></span>
+        <span>Saving draft…</span>
+      }
+      @case ('saved') {
+        <span class="text-success-emphasis fade-in"
+          >✓ Draft saved {{ save.at | date: 'shortTime' }}</span
+        >
+      }
+      @case ('error') {
+        <span class="text-danger-emphasis">Not saved: {{ save.message }}</span>
+        <button type="button" class="btn btn-sm btn-outline-danger" (click)="saveDraft()">
+          Retry now
+        </button>
+      }
+      @default {
+        <span class="text-body-secondary">Changes are saved automatically</span>
+      }
+    }
+  </div>
+</app-page-header>
+
+@if (draft()?.status === 'INFO_REQUESTED') {
+  <div class="alert alert-warning" role="status">
+    The reviewer requested more information. Update the application and submit it again.
+  </div>
+}
+
+<div class="card">
+  <!-- Stepper -->
+  <nav class="card-header" aria-label="Application steps">
+    <ol class="wizard-steps list-unstyled d-flex flex-wrap gap-2 mb-0">
+      @for (step of steps; track step.key; let i = $index) {
+        <li>
+          <button
+            type="button"
+            class="btn btn-sm"
+            [class.btn-primary]="i === currentStep()"
+            [class.btn-outline-secondary]="i !== currentStep()"
+            [attr.aria-current]="i === currentStep() ? 'step' : null"
+            [disabled]="i > currentStep() && !canGoTo(i)"
+            (click)="goTo(i)"
+          >
+            @let complete = i < reviewStep && i !== currentStep() && isStepValid(i);
+            <span
+              class="badge rounded-pill me-1"
+              [class.text-bg-success]="complete"
+              [class.badge-soft-secondary]="!complete"
+              aria-hidden="true"
+              >{{ complete ? '✓' : i + 1 }}</span
+            >
+            {{ step.label }}
+            @if (complete) {
+              <span class="visually-hidden">(complete)</span>
+            }
+          </button>
+        </li>
+      }
+    </ol>
+    <div
+      class="progress mt-3"
+      role="progressbar"
+      aria-label="Application completion"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      [attr.aria-valuenow]="progress()"
+      [attr.aria-valuetext]="progress() + '% complete'"
+    >
+      <div class="progress-bar wizard-progress" [style.width.%]="progress()"></div>
+    </div>
+  </nav>
+
+  <div class="card-body">
+    <h2 #stepHeading class="h5 mb-3" tabindex="-1">
+      Step {{ currentStep() + 1 }} of {{ steps.length }}: {{ steps[currentStep()].label }}
+    </h2>
+
+    @if (showErrorSummary()) {
+      <div id="error-summary" class="alert alert-danger" role="alert" tabindex="-1">
+        Some answers need attention. Please correct the highlighted fields.
+      </div>
+    }
+
+    <div class="step-body">
+      @switch (currentStep()) {
+        @case (0) {
+          <app-business-step class="d-block fade-in" [group]="form.controls.business" />
+        }
+        @case (1) {
+          <app-contact-step class="d-block fade-in" [group]="form.controls.contact" />
+        }
+        @case (2) {
+          <app-owners-step class="d-block fade-in" [array]="form.controls.owners" />
+        }
+        @case (3) {
+          <app-banking-step class="d-block fade-in" [group]="form.controls.banking" />
+        }
+        @case (4) {
+          @if (reviewData(); as data) {
+            <app-review-step class="d-block fade-in" [data]="data" (editStep)="goTo($event)" />
+          }
+        }
+      }
+    </div>
+
+    @if (submitError(); as message) {
+      <div class="alert alert-danger mt-3 mb-0" role="alert">{{ message }}</div>
+    }
+  </div>
+
+  <div class="card-footer d-flex flex-wrap gap-2 justify-content-between">
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      [disabled]="currentStep() === 0"
+      (click)="back()"
+    >
+      Back
+    </button>
+    <div class="d-flex flex-wrap gap-2">
+      <button type="button" class="btn btn-outline-primary" (click)="saveDraft()">
+        Save draft
+      </button>
+      @if (currentStep() < reviewStep) {
+        <button type="button" class="btn btn-primary" [disabled]="checking()" (click)="next()">
+          @if (checking()) {
+            <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+          }
+          Next
+        </button>
+      } @else {
+        <button type="button" class="btn btn-success" [disabled]="submitting()" (click)="submit()">
+          @if (submitting()) {
+            <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+          }
+          Submit application
+        </button>
+      }
+    </div>
+  </div>
+</div>
