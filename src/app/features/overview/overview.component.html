@@ -1,0 +1,279 @@
+<app-page-header
+  [heading]="greeting()"
+  [subtitle]="roleLabel() + ' overview of merchant applications'"
+>
+  @if (auth.can('application:create')) {
+    <a
+      class="btn btn-primary d-inline-flex align-items-center gap-2"
+      routerLink="/applications/new"
+    >
+      <app-icon name="plus" [size]="18" /> New application
+    </a>
+  }
+</app-page-header>
+
+@let s = state();
+@if (s.status === 'error') {
+  <app-error-alert [message]="s.message" (retry)="retry()" />
+} @else if (s.status === 'loading') {
+  <!-- Skeleton -->
+  <div class="row g-3 g-xl-4 placeholder-glow" aria-hidden="true">
+    @for (p of placeholders; track p) {
+      <div class="col-sm-6 col-xl-3">
+        <div class="card">
+          <div class="card-body">
+            <span class="placeholder rounded col-3 d-block mb-3 py-3"></span>
+            <span class="placeholder rounded col-6 d-block mb-2"></span>
+            <span class="placeholder rounded col-4 d-block"></span>
+          </div>
+        </div>
+      </div>
+    }
+    <div class="col-xl-8">
+      <div class="card">
+        <div class="card-body">
+          <span class="placeholder rounded col-12 d-block py-5 my-5"></span>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-4">
+      <div class="card">
+        <div class="card-body">
+          <span class="placeholder rounded col-12 d-block py-5 my-5"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="visually-hidden" role="status">Loading overview…</p>
+} @else {
+  @let data = s.data;
+
+  <!-- KPI tiles -->
+  <section class="row g-3 g-xl-4 mb-3 mb-xl-4 fade-in" aria-label="Key figures">
+    @for (k of kpis(); track k.label) {
+      <div class="col-sm-6 col-xl-3">
+        <div class="card h-100">
+          <div class="card-body">
+            <span class="kpi-icon mb-3" aria-hidden="true"
+              ><app-icon [name]="k.icon" [size]="22"
+            /></span>
+            <p class="small text-body-secondary mb-1">{{ k.label }}</p>
+            <p class="kpi-value mb-1">{{ k.value }}</p>
+            <p class="small text-muted-app mb-0">{{ k.hint }}</p>
+          </div>
+        </div>
+      </div>
+    }
+  </section>
+
+  <div class="row g-3 g-xl-4 mb-3 mb-xl-4 fade-in">
+    <!-- Monthly intake -->
+    <section class="col-xl-8" aria-labelledby="monthly-title">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="card-title-row">
+            <div>
+              <h2 id="monthly-title">New applications</h2>
+              <p class="small text-body-secondary mb-0">Created per month, last 6 months</p>
+            </div>
+            <div class="segmented" role="group" aria-label="Display as">
+              <button
+                type="button"
+                class="btn"
+                [attr.aria-pressed]="monthlyView() === 'chart'"
+                (click)="monthlyView.set('chart')"
+              >
+                Chart
+              </button>
+              <button
+                type="button"
+                class="btn"
+                [attr.aria-pressed]="monthlyView() === 'table'"
+                (click)="monthlyView.set('table')"
+              >
+                Table
+              </button>
+            </div>
+          </div>
+          @if (monthlyView() === 'chart') {
+            <app-column-chart
+              [data]="monthlyData()"
+              label="New applications per month"
+              unit="new applications"
+              [height]="220"
+            />
+          } @else {
+            <table class="table table-app fade-in">
+              <caption class="visually-hidden">
+                New applications per month
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Month</th>
+                  <th scope="col" class="text-end">New applications</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (m of data.monthly; track m.month) {
+                  <tr>
+                    <td>{{ m.label }} {{ m.month.slice(0, 4) }}</td>
+                    <td class="text-end font-monospace-digits">{{ m.created }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- By status -->
+    <section class="col-xl-4" aria-labelledby="status-title">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="card-title-row">
+            <div>
+              <h2 id="status-title">By status</h2>
+              <p class="small text-body-secondary mb-0">
+                {{ data.counts.total }} applications in total
+              </p>
+            </div>
+          </div>
+          <app-status-meter-list [counts]="data.counts" />
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="row g-3 g-xl-4 fade-in">
+    <!-- Needs attention (role-specific) -->
+    <section class="col-xl-8" aria-labelledby="attention-title">
+      <div class="card h-100">
+        <div class="card-body pb-0 flex-grow-0">
+          <div class="card-title-row mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <h2 id="attention-title">{{ attentionCopy().title }}</h2>
+              <span class="badge rounded-pill badge-soft-primary">{{ data.attention.total }}</span>
+            </div>
+            <a
+              class="btn btn-sm btn-soft d-inline-flex align-items-center gap-1"
+              routerLink="/applications"
+              [queryParams]="{ status: attentionCopy().status }"
+            >
+              View all <app-icon name="arrow-right" [size]="16" />
+            </a>
+          </div>
+        </div>
+        @if (data.attention.items.length === 0) {
+          <div class="card-body pt-0">
+            <p class="text-body-secondary mb-0 d-flex align-items-center gap-2">
+              <app-icon name="check" [size]="18" /> {{ attentionCopy().empty }}
+            </p>
+          </div>
+        } @else {
+          <div class="table-responsive">
+            <table class="table table-app align-middle">
+              <caption class="visually-hidden">
+                {{
+                  attentionCopy().title
+                }}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col" class="ps-4">Merchant</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" class="d-none d-md-table-cell">Updated</th>
+                  <th scope="col" class="text-end pe-4">
+                    <span class="visually-hidden">Action</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (app of data.attention.items; track app.id) {
+                  @let a = actionsFor(app);
+                  <tr>
+                    <td class="ps-4">
+                      <a
+                        class="fw-medium text-body-emphasis"
+                        [routerLink]="['/applications', app.id]"
+                        >{{ app.tradingName || app.legalName || 'Untitled draft' }}</a
+                      >
+                      <div class="small text-muted-app font-monospace-digits">
+                        {{ app.reference }}
+                      </div>
+                    </td>
+                    <td><app-status-badge [status]="app.status" /></td>
+                    <td class="d-none d-md-table-cell text-body-secondary">
+                      {{ app.updatedAt | date: 'mediumDate' }}
+                    </td>
+                    <td class="text-end pe-4">
+                      @if (a.canEdit) {
+                        <a
+                          class="btn btn-sm btn-outline-primary"
+                          [routerLink]="['/applications', app.id, 'edit']"
+                          >Continue<span class="visually-hidden"> {{ app.reference }}</span></a
+                        >
+                      } @else if (a.canDecide) {
+                        <a
+                          class="btn btn-sm btn-primary"
+                          [routerLink]="['/applications', app.id]"
+                          fragment="review"
+                          >Review<span class="visually-hidden"> {{ app.reference }}</span></a
+                        >
+                      } @else if (a.canAssign) {
+                        <a
+                          class="btn btn-sm btn-outline-primary"
+                          [routerLink]="['/applications', app.id]"
+                          fragment="assignment"
+                          >Assign<span class="visually-hidden"> {{ app.reference }}</span></a
+                        >
+                      } @else {
+                        <a class="btn btn-sm btn-soft" [routerLink]="['/applications', app.id]"
+                          >View<span class="visually-hidden"> {{ app.reference }}</span></a
+                        >
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Recent activity -->
+    <section class="col-xl-4" aria-labelledby="activity-title">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="card-title-row">
+            <h2 id="activity-title">Recent activity</h2>
+          </div>
+          @if (data.activity.length === 0) {
+            <p class="text-body-secondary mb-0">No activity yet.</p>
+          } @else {
+            <ol class="activity list-unstyled mb-0">
+              @for (e of data.activity; track e.id) {
+                <li class="d-flex gap-3">
+                  <span class="avatar avatar-sm" aria-hidden="true">{{
+                    initials(e.actorName)
+                  }}</span>
+                  <div class="small">
+                    <span class="text-body-emphasis fw-medium">{{ e.actorName }}</span>
+                    {{ describe(e) }}
+                    <a [routerLink]="['/applications', e.applicationId]">{{ e.merchant }}</a>
+                    <div class="text-muted-app">
+                      <time [attr.datetime]="e.at" [attr.title]="e.at | date: 'medium'">{{
+                        timeAgo(e.at)
+                      }}</time>
+                    </div>
+                  </div>
+                </li>
+              }
+            </ol>
+          }
+        </div>
+      </div>
+    </section>
+  </div>
+}
