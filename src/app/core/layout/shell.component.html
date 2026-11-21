@@ -1,0 +1,161 @@
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<div class="app-shell" [class.is-collapsed]="collapsed()" [class.is-mobile-open]="mobileOpen()">
+  <!-- Sidebar -->
+  <aside id="app-sidebar" class="app-sidebar" aria-label="Sidebar">
+    <a
+      class="d-flex align-items-center gap-2 mb-2 px-2"
+      routerLink="/dashboard"
+      aria-label="TechKraft Merchant Portal, overview"
+    >
+      <img class="brand-logo brand-full" src="techkraft-logo.png" alt="" height="26" width="181" />
+      <img class="brand-mark d-none" src="favicon.svg" alt="" height="32" width="32" />
+    </a>
+    <div class="small text-muted-app px-2 brand-full">Merchant Portal</div>
+
+    <nav aria-label="Main">
+      <div class="menu-label px-2">Menu</div>
+      <ul class="list-unstyled d-flex flex-column gap-1 mb-0">
+        @for (item of navItems(); track item.key) {
+          @let active = activeKey() === item.key;
+          <li>
+            <a
+              class="sidebar-link"
+              [class.active]="active"
+              [routerLink]="item.link"
+              [attr.aria-current]="active ? 'page' : null"
+              [attr.title]="collapsed() ? item.label : null"
+            >
+              <app-icon [name]="item.icon" />
+              <span class="sidebar-text">{{ item.label }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+
+    @if (auth.user(); as user) {
+      @let info = roleInfo[user.role];
+      <div class="sidebar-card mt-auto">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <app-icon [name]="info.icon" [size]="18" />
+          <span class="fw-semibold small text-body-emphasis">{{ info.label }} account</span>
+        </div>
+        <p class="small text-body-secondary mb-0">{{ info.summary }}</p>
+      </div>
+    }
+  </aside>
+
+  @if (mobileOpen()) {
+    <div class="app-backdrop d-lg-none" aria-hidden="true" (click)="mobileOpen.set(false)"></div>
+  }
+
+  <div class="app-main">
+    <!-- Top bar -->
+    <header class="app-header">
+      <div class="d-flex align-items-center gap-3 px-3 px-md-4 py-3">
+        <button
+          type="button"
+          class="header-icon-btn"
+          aria-controls="app-sidebar"
+          [attr.aria-expanded]="mobileOpen() || !collapsed()"
+          aria-label="Toggle sidebar"
+          (click)="toggleSidebar()"
+        >
+          <app-icon name="menu" />
+        </button>
+
+        <form
+          class="header-search d-none d-sm-block"
+          role="search"
+          (submit)="$event.preventDefault()"
+        >
+          <label for="global-search" class="visually-hidden">Search applications</label>
+          <app-icon class="search-icon" name="search" [size]="18" />
+          <input
+            #globalSearch
+            id="global-search"
+            type="search"
+            class="form-control"
+            placeholder="Search applications…"
+            autocomplete="off"
+            [attr.aria-keyshortcuts]="isMac ? 'Meta+K' : 'Control+K'"
+            (keydown.enter)="search($event)"
+          />
+          <kbd class="kbd-hint search-kbd d-none d-md-inline" aria-hidden="true">{{
+            isMac ? '⌘K' : 'Ctrl K'
+          }}</kbd>
+        </form>
+
+        <div class="ms-auto d-flex align-items-center gap-2 gap-md-3">
+          <!-- Real-time connection (Socket.IO) -->
+          @let live = realtime.status() === 'live';
+          <span
+            class="live-indicator"
+            [class.is-live]="live"
+            [attr.title]="
+              live ? 'Status updates arrive in real time' : 'Reconnecting to real-time updates'
+            "
+          >
+            <span class="live-dot" aria-hidden="true"></span>
+            {{ live ? 'Live' : 'Offline' }}
+          </span>
+
+          @if (auth.user(); as user) {
+            <div #userMenu class="dropdown">
+              <button
+                #userMenuButton
+                type="button"
+                class="btn d-flex align-items-center gap-2 px-1 border-0"
+                aria-haspopup="true"
+                aria-controls="user-menu"
+                [attr.aria-expanded]="userMenuOpen()"
+                (click)="toggleUserMenu()"
+              >
+                <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+                <span class="d-none d-md-inline text-start lh-sm">
+                  <span class="d-block fw-medium text-body-emphasis">{{ user.name }}</span>
+                  <span class="d-block small text-body-secondary">{{ roleLabels[user.role] }}</span>
+                </span>
+                <app-icon class="text-body-secondary" name="chevron-down" [size]="18" />
+                <span class="visually-hidden">Account menu</span>
+              </button>
+
+              @if (userMenuOpen()) {
+                <div id="user-menu" class="dropdown-menu dropdown-menu-end show mt-2 fade-in">
+                  <div class="px-3 py-2">
+                    <div class="fw-semibold text-body-emphasis">{{ user.name }}</div>
+                    <div class="small text-body-secondary">{{ roleLabels[user.role] }} account</div>
+                  </div>
+                  <hr class="dropdown-divider" />
+                  @if (devMode) {
+                    <button
+                      type="button"
+                      class="dropdown-item d-flex align-items-center gap-2"
+                      (click)="expireTokens()"
+                    >
+                      <app-icon name="zap" [size]="18" />
+                      Expire token (dev)
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="dropdown-item d-flex align-items-center gap-2"
+                    (click)="logout()"
+                  >
+                    <app-icon name="logout" [size]="18" />
+                    Sign out
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" class="app-content" tabindex="-1">
+      <router-outlet />
+    </main>
+  </div>
+</div>

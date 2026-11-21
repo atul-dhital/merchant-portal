@@ -1,0 +1,116 @@
+<main class="auth-page">
+  <div class="row g-0 min-vh-100">
+    <!-- Sign-in panel -->
+    <div
+      class="col-xl-8 d-flex align-items-center justify-content-center p-4 p-md-5 position-relative"
+    >
+      <div class="auth-form w-100 fade-in">
+        <img
+          class="brand-logo mb-5 d-xl-none"
+          src="techkraft-logo.png"
+          alt="TechKraft"
+          height="28"
+          width="195"
+        />
+        <h1 class="mb-2">Sign in</h1>
+        <p class="text-body-secondary mb-4">
+          Choose an account type. Each one sees and does different things.
+        </p>
+
+        @let state = users();
+        @if (state.status === 'loading') {
+          <div class="placeholder-glow d-flex flex-column gap-3" aria-hidden="true">
+            <div class="row row-cols-1 row-cols-md-3 g-3 w-100 mx-0">
+              @for (p of [1, 2, 3]; track p) {
+                <div class="col">
+                  <span class="placeholder rounded-4 d-block w-100 account-card-skeleton"></span>
+                </div>
+              }
+            </div>
+          </div>
+          <p class="visually-hidden" role="status">Loading demo accounts…</p>
+        } @else if (state.status === 'error') {
+          <div class="alert alert-danger mb-0" role="alert">
+            Could not load demo accounts. Is the mock API running? Start it with
+            <strong>npm start</strong>.
+          </div>
+        } @else {
+          <div class="row row-cols-1 row-cols-md-3 g-3">
+            @for (type of accountTypes(); track type.role) {
+              <div class="col">
+                <section class="account-card h-100" [attr.aria-labelledby]="'type-' + type.role">
+                  <span class="kpi-icon mb-3" aria-hidden="true">
+                    <app-icon [name]="type.info.icon" [size]="22" />
+                  </span>
+                  <h2 class="account-card-title mb-1" [id]="'type-' + type.role">
+                    {{ type.info.label }}
+                  </h2>
+                  <p class="text-body-secondary mb-0">{{ type.info.summary }}</p>
+
+                  <ul class="account-abilities" [attr.aria-label]="type.info.label + ' can'">
+                    @for (ability of type.info.abilities; track ability) {
+                      <li><app-icon name="check" [size]="16" /> {{ ability }}</li>
+                    }
+                  </ul>
+
+                  <div class="mt-auto d-grid gap-2">
+                    @for (user of type.users; track user.id) {
+                      <button
+                        type="button"
+                        class="btn btn-primary"
+                        [disabled]="signingInAs() !== null"
+                        (click)="signIn(user)"
+                      >
+                        @if (signingInAs() === user.id) {
+                          <span
+                            class="spinner-border spinner-border-sm me-1"
+                            aria-hidden="true"
+                          ></span>
+                        }
+                        Sign in as {{ user.name }}
+                      </button>
+                    }
+                  </div>
+                </section>
+              </div>
+            }
+          </div>
+        }
+
+        @if (error(); as message) {
+          <div class="alert alert-danger mt-3 mb-0" role="alert">{{ message }}</div>
+        }
+
+        <p class="small text-muted-app mt-4 mb-0">
+          Demo only: accounts are fictional and have no passwords. A production system would use an
+          identity provider.
+        </p>
+      </div>
+    </div>
+
+    <!-- Brand panel -->
+    <div class="col-xl-4 d-none d-xl-flex auth-brand align-self-start">
+      <div class="auth-brand-inner">
+        <img
+          class="logo-on-dark mb-4"
+          src="techkraft-logo.png"
+          alt="TechKraft"
+          height="36"
+          width="250"
+        />
+        <p class="fs-3 mb-4">Merchant Portal</p>
+        <ul class="list-unstyled d-flex flex-column gap-3 mb-0 text-start">
+          <li class="d-flex gap-3">
+            <app-icon name="file" /> Onboard merchants with a guided, auto-saving application.
+          </li>
+          <li class="d-flex gap-3">
+            <app-icon name="check" /> Review risk and record decisions with a full audit trail.
+          </li>
+          <li class="d-flex gap-3">
+            <app-icon name="shield" /> Sensitive data stays masked and every reveal is logged.
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</main>
