@@ -1,0 +1,207 @@
+<app-page-header heading="Applications" [crumbs]="crumbs">
+  @if (auth.can('application:create')) {
+    <a
+      class="btn btn-primary d-inline-flex align-items-center gap-2"
+      routerLink="/applications/new"
+    >
+      <app-icon name="plus" [size]="18" /> New application
+    </a>
+  }
+</app-page-header>
+
+<section class="card" aria-labelledby="filters-heading">
+  <div class="card-body border-bottom">
+    <h2 id="filters-heading" class="visually-hidden">Filters</h2>
+    <div class="row g-2 align-items-end">
+      <div class="col-12 col-md-8 col-lg-9">
+        <label for="search" class="form-label small mb-1">Search</label>
+        <div class="position-relative">
+          <input
+            #searchInput
+            id="search"
+            type="search"
+            class="form-control pe-5"
+            placeholder="Reference or merchant name"
+            autocomplete="off"
+            aria-keyshortcuts="/"
+            [formControl]="searchControl"
+          />
+          <kbd
+            class="kbd-hint position-absolute top-50 end-0 translate-middle-y me-2 d-none d-md-inline"
+            aria-hidden="true"
+            title="Press / to search"
+            >/</kbd
+          >
+        </div>
+      </div>
+      <div class="col-12 col-md-4 col-lg-3">
+        <label for="page-size" class="form-label small mb-1">Rows per page</label>
+        <select id="page-size" class="form-select" (change)="onPageSizeChange($event)">
+          @for (size of pageSizes; track size) {
+            <option [value]="size" [selected]="query().pageSize === size">{{ size }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <!-- Status filter chips with live counts (toggle buttons) -->
+    <div
+      class="status-chips d-flex flex-wrap gap-2 mt-3"
+      role="group"
+      aria-label="Filter by status"
+    >
+      @for (chip of statusChips(); track chip.value) {
+        @let active = query().status === chip.value;
+        <button
+          type="button"
+          class="btn btn-sm rounded-pill"
+          [class.btn-primary]="active"
+          [class.btn-outline-secondary]="!active"
+          [attr.aria-pressed]="active"
+          (click)="selectStatus(chip.value)"
+        >
+          {{ chip.label }}
+          @if (chip.count !== undefined) {
+            <span
+              class="badge rounded-pill ms-1"
+              [class.bg-white]="active"
+              [class.text-primary]="active"
+              [class.badge-soft-secondary]="!active"
+              >{{ chip.count }}</span
+            >
+          }
+        </button>
+      }
+    </div>
+  </div>
+
+  @let current = state();
+  <div class="position-relative" [attr.aria-busy]="current.status === 'loading'">
+    <p class="visually-hidden" aria-live="polite">
+      @if (current.status === 'loading') {
+        Loading applications…
+      } @else {
+        {{ rangeLabel() }}
+      }
+    </p>
+
+    @if (current.status === 'error') {
+      <div class="p-3">
+        <app-error-alert [message]="current.message" (retry)="retry()" />
+      </div>
+    } @else if (current.status === 'loading' && !lastPage()) {
+      <!-- Skeleton rows while the first page loads -->
+      <ul class="list-unstyled mb-0 placeholder-glow" aria-hidden="true">
+        @for (r of skeletonRows; track r) {
+          <li class="d-flex align-items-center gap-3 px-3 py-3 border-bottom">
+            <span class="placeholder col-2 rounded"></span>
+            <span class="placeholder col-4 rounded"></span>
+            <span class="placeholder col-1 rounded-pill"></span>
+            <span class="placeholder col-2 rounded d-none d-md-inline-block"></span>
+          </li>
+        }
+      </ul>
+    } @else if (rows().length === 0) {
+      <div class="text-center py-5 px-3">
+        <p class="mb-2">No applications found.</p>
+        @if (pageOutOfRange()) {
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="onPageChange(1)">
+            Go to first page
+          </button>
+        } @else if (hasFilters()) {
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="clearFilters()">
+            Clear filters
+          </button>
+        }
+      </div>
+    } @else {
+      @if (current.status === 'loading') {
+        <div class="loading-overlay" aria-hidden="true">
+          <span class="spinner-border spinner-border-sm text-primary"></span>
+        </div>
+      }
+
+      <!-- Table for medium screens and up -->
+      <div class="table-responsive d-none d-md-block">
+        <table class="table table-app align-middle">
+          <caption class="visually-hidden">
+            Merchant applications
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Reference</th>
+              <th scope="col">Merchant</th>
+              <th scope="col">Status</th>
+              <th scope="col">Created by</th>
+              <th scope="col">Reviewer</th>
+              <th scope="col">Updated</th>
+              <th scope="col"><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.item.id) {
+              <tr class="fade-in">
+                <td class="font-monospace-digits text-nowrap">
+                  <a [routerLink]="['/applications', row.item.id]">{{ row.item.reference }}</a>
+                </td>
+                <td>
+                  <div class="fw-semibold">
+                    {{ row.item.tradingName || row.item.legalName || 'Untitled draft' }}
+                  </div>
+                  <div class="small text-body-secondary">{{ row.item.legalName }}</div>
+                </td>
+                <td><app-status-badge [status]="row.item.status" /></td>
+                <td>{{ row.item.createdByName }}</td>
+                <td>{{ row.item.assignedReviewerName ?? '—' }}</td>
+                <td class="text-nowrap">{{ row.item.updatedAt | date: 'mediumDate' }}</td>
+                <td class="text-end text-nowrap">
+                  <app-row-actions [item]="row.item" [actions]="row.actions" />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Stacked cards for small screens -->
+      <ul class="list-group list-group-flush d-md-none">
+        @for (row of rows(); track row.item.id) {
+          <li class="list-group-item fade-in">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <a class="fw-semibold" [routerLink]="['/applications', row.item.id]">{{
+                  row.item.tradingName || row.item.legalName || 'Untitled draft'
+                }}</a>
+                <div class="small text-body-secondary font-monospace-digits">
+                  {{ row.item.reference }}
+                </div>
+              </div>
+              <app-status-badge [status]="row.item.status" />
+            </div>
+            <dl class="row small mb-2 mt-2">
+              <dt class="col-5 fw-normal text-body-secondary">Created by</dt>
+              <dd class="col-7 mb-0">{{ row.item.createdByName }}</dd>
+              <dt class="col-5 fw-normal text-body-secondary">Reviewer</dt>
+              <dd class="col-7 mb-0">{{ row.item.assignedReviewerName ?? '—' }}</dd>
+              <dt class="col-5 fw-normal text-body-secondary">Updated</dt>
+              <dd class="col-7 mb-0">{{ row.item.updatedAt | date: 'mediumDate' }}</dd>
+            </dl>
+            <app-row-actions [item]="row.item" [actions]="row.actions" />
+          </li>
+        }
+      </ul>
+
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 p-3 border-top">
+        <span class="small text-body-secondary">{{ rangeLabel() }}</span>
+        @if (lastPage(); as page) {
+          <app-pagination
+            [page]="page.page"
+            [pageSize]="page.pageSize"
+            [total]="page.total"
+            (pageChange)="onPageChange($event)"
+          />
+        }
+      </div>
+    }
+  </div>
+</section>
